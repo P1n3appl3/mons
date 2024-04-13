@@ -74,8 +74,8 @@ def find_version_ctor(byte_iter, pe: dnfile.dnPE):
 
                     if (
                         type_ref
-                        and type_ref.TypeNamespace == "System"
-                        and type_ref.TypeName == "Version"
+                        and type_ref.TypeNamespace.value == "System"
+                        and type_ref.TypeName.value == "Version"
                     ):
                         return Version(*version)
                 version = None
@@ -110,7 +110,7 @@ def find_celeste_version(pe: dnfile.dnPE) -> Version:
         (
             row
             for row in row_iter
-            if row.TypeNamespace == "Celeste" and row.TypeName == "Celeste"
+            if row.TypeNamespace.value == "Celeste" and row.TypeName.value == "Celeste"
         ),
         None,
     )
@@ -153,7 +153,7 @@ def find_everest_version(pe: dnfile.dnPE) -> t.Optional[Version]:
         (
             row
             for row in typedef.rows
-            if row.TypeNamespace == "Celeste.Mod" and row.TypeName == "Everest"
+            if row.TypeNamespace.value == "Celeste.Mod" and row.TypeName.value == "Everest"
         ),
         None,
     )
@@ -189,7 +189,7 @@ def find_everest_version(pe: dnfile.dnPE) -> t.Optional[Version]:
                     reversed([next(struct_data)[0] for _ in range(3)])
                 )
                 # Lookup the offset in the user string table.
-                us = pe.net.user_strings.get_us(offset)
+                us = pe.net.user_strings.get(offset)
                 assert us, "Invalid string or offset in user string table."
                 return Version.parse(us.value)
     except StopIteration:
@@ -203,14 +203,14 @@ def find_framework(pe: dnfile.dnPE) -> str:
     assert pe.net
     assert pe.net.mdtables.TypeRef
     for row in pe.net.mdtables.TypeRef.rows:
-        if row.TypeNamespace.startswith("Microsoft.Xna.Framework"):
+        if row.TypeNamespace.value.startswith("Microsoft.Xna.Framework"):
             # Pre-emptively load with only the data we care about to prevent
             # triggering a full data load.
             try:
                 row._parse_struct_codedindexes([pe.net.mdtables.AssemblyRef], None)  # type: ignore
             except AttributeError:
                 pass  # ignore
-            framework: str = row.ResolutionScope.row.Name  # type: ignore
+            framework: str = row.ResolutionScope.row.Name.value  # type: ignore
             logger.debug(
                 f"Found TypeRef '{row.TypeNamespace}.{row.TypeName}' with resolution scope name '{framework}'."
             )
